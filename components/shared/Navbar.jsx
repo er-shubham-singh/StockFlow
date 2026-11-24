@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { GlobalSearchModal } from "./GlobalSearchModal";
 
@@ -57,6 +58,13 @@ export function Navbar() {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Cloud Status */}
+            <div className="hidden lg:flex items-center">
+              <Badge variant="Active" size="sm">
+                Live Cloud Sync
+              </Badge>
+            </div>
+
             {/* Reset Demo Button */}
             <Button
               variant="ghost"

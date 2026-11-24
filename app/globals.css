@@ -129,3 +129,40 @@
   transform-origin: 17px 18px;
   transform-box: view-box;
 }
+
+/* Live Status Blinking Radar Ping & Dot Beacon */
+@keyframes live-radar-ping {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+
+@keyframes live-dot-blink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+    filter: drop-shadow(0 0 0px transparent);
+  }
+}
+
+.animate-live-ping {
+  animation: live-radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-live-blink {
+  animation: live-dot-blink 2s ease-in-out infinite;
+}

@@ -16,6 +16,8 @@ import {
   Trash2,
   Clock,
   ArrowRight,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatINR, formatDate, formatDateTime, cn } from "@/lib/utils";
@@ -26,6 +28,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
@@ -51,6 +54,9 @@ function SalesContent() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [tempStatus, setTempStatus] = useState("");
+  const [tempDate, setTempDate] = useState("");
 
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [invoiceDetailOpen, setInvoiceDetailOpen] = useState(false);
@@ -126,14 +132,14 @@ function SalesContent() {
         variants={cardStaggerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
       >
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={FileText} variant="primary" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total Invoices</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={FileText} variant="primary" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total Invoices</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight">
                 {sales.length}
               </p>
             </div>
@@ -141,11 +147,11 @@ function SalesContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={CreditCard} variant="emerald" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total Revenue</p>
-              <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={CreditCard} variant="emerald" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total Revenue</p>
+              <p className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight truncate">
                 {formatINR(totalRevenue)}
               </p>
             </div>
@@ -153,11 +159,11 @@ function SalesContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={CheckCircle2} variant="teal" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Paid Invoices</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={CheckCircle2} variant="teal" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Paid Invoices</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight">
                 {paidSales.length}
               </p>
             </div>
@@ -165,11 +171,11 @@ function SalesContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={Clock} iconName="Clock" variant="amber" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Draft / Pending</p>
-              <p className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={Clock} iconName="Clock" variant="amber" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Draft / Pending</p>
+              <p className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums leading-tight">
                 {draftSales.length + confirmedSales.length}
               </p>
             </div>
@@ -178,8 +184,8 @@ function SalesContent() {
       </motion.div>
 
       {/* Filter and Search Bar */}
-      <Card padding="none" className="p-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4">
+      <Card padding="none" className="p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2.5 p-3 sm:p-4">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -187,7 +193,32 @@ function SalesContent() {
             className="flex-1"
           />
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mobile Filter Button - In One Line With Search Bar */}
+          <button
+            type="button"
+            onClick={() => {
+              setTempStatus(selectedStatus);
+              setTempDate(dateFilter);
+              setFilterDrawerOpen(true);
+            }}
+            className={cn(
+              "sm:hidden relative flex items-center justify-center min-w-[42px] h-[42px] px-3 rounded-xl border transition-all shrink-0",
+              selectedStatus || dateFilter
+                ? "bg-[#5B5BF0]/10 text-[#5B5BF0] border-[#5B5BF0]/40 dark:bg-[#5B5BF0]/20 dark:border-[#5B5BF0]/50"
+                : "bg-white dark:bg-[#12152A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+            )}
+            aria-label="Open filter options"
+          >
+            <SlidersHorizontal className="w-4.5 h-4.5" />
+            {(selectedStatus || dateFilter) && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center w-4.5 h-4.5 text-[10px] font-black rounded-full bg-[#5B5BF0] text-white shadow-xs">
+                {(selectedStatus ? 1 : 0) + (dateFilter ? 1 : 0)}
+              </span>
+            )}
+          </button>
+
+          {/* Desktop Inline Filters */}
+          <div className="hidden sm:flex items-center gap-2.5">
             <FilterSelect
               value={selectedStatus}
               onChange={setSelectedStatus}
@@ -205,7 +236,112 @@ function SalesContent() {
             />
           </div>
         </div>
+
+        {/* Active Filter Chips on Mobile */}
+        {(selectedStatus || dateFilter) && (
+          <div className="sm:hidden flex items-center gap-1.5 px-3 pb-3 pt-0 flex-wrap border-t border-slate-100 dark:border-slate-800/60 pt-2.5">
+            <span className="text-[10px] font-semibold text-slate-400">Active:</span>
+            {selectedStatus && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
+                {selectedStatus}
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {dateFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                From: {dateFilter}
+                <button
+                  type="button"
+                  onClick={() => setDateFilter("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStatus("");
+                setDateFilter("");
+              }}
+              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline ml-1"
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </Card>
+
+      {/* Mobile Bottom Sheet Filters */}
+      <FilterDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title="Filters"
+        onClear={() => {
+          setTempStatus("");
+          setTempDate("");
+          setSelectedStatus("");
+          setDateFilter("");
+          setFilterDrawerOpen(false);
+        }}
+        onApply={() => {
+          setSelectedStatus(tempStatus);
+          setDateFilter(tempDate);
+          setFilterDrawerOpen(false);
+        }}
+        clearLabel="Clear Filter"
+        applyLabel="Apply Filter"
+      >
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            Invoice Status
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "All Statuses", value: "", variant: null },
+              { label: "Draft", value: "Draft", variant: "Draft" },
+              { label: "Confirmed", value: "Confirmed", variant: "Confirmed" },
+              { label: "Paid", value: "Paid", variant: "Paid" },
+              { label: "Cancelled", value: "Cancelled", variant: "Cancelled" },
+            ].map((st) => (
+              <button
+                key={st.label}
+                type="button"
+                onClick={() => setTempStatus(st.value === tempStatus ? "" : st.value)}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all",
+                  tempStatus === st.value
+                    ? "border-[#5B5BF0] bg-[#5B5BF0]/10 text-[#5B5BF0] font-bold dark:bg-[#5B5BF0]/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                )}
+              >
+                <span>{st.label}</span>
+                {st.variant && <Badge variant={st.variant} size="sm" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Date Filter Section */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            Filter From Date
+          </label>
+          <input
+            type="date"
+            value={tempDate}
+            onChange={(e) => setTempDate(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#181C38] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200"
+          />
+        </div>
+      </FilterDrawer>
 
       {/* Invoices List */}
       {filteredSales.length === 0 ? (

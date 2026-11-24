@@ -169,9 +169,12 @@ export default function ContactsPage() {
                           Contact: <span className="font-semibold text-slate-700 dark:text-slate-300">{c.name}</span>
                         </p>
                       </div>
-                      <Badge variant="primary" size="sm">
-                        {customerSales.length} Orders
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="Active" size="sm">Active</Badge>
+                        <Badge variant="primary" size="sm" dot={false}>
+                          {customerSales.length} Orders
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 my-3 py-3 border-y border-slate-100 dark:border-slate-800/80">
@@ -245,9 +248,12 @@ export default function ContactsPage() {
                           City: <span className="font-semibold text-slate-700 dark:text-slate-300">{s.city}</span>
                         </p>
                       </div>
-                      <Badge variant="Received" size="sm">
-                        {supplierPOs.length} POs
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="Active" size="sm">Active</Badge>
+                        <Badge variant="Received" size="sm" dot={false}>
+                          {supplierPOs.length} POs
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 my-3 py-3 border-y border-slate-100 dark:border-slate-800/80">

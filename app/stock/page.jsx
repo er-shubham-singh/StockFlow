@@ -18,6 +18,7 @@ import {
   Layers,
   ArrowUpDown,
   Check,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatINR, formatDate, formatDateTime, cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
@@ -48,6 +50,9 @@ function StockContent() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [tempCategory, setTempCategory] = useState("");
+  const [tempStatus, setTempStatus] = useState("");
 
   // Drawers & Modals
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
@@ -167,14 +172,14 @@ function StockContent() {
         variants={cardStaggerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
       >
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3">
-            <Icon3D icon={Package} variant="primary" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total SKUs</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3">
+            <Icon3D icon={Package} variant="primary" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total SKUs</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight">
                 {items.length}
               </p>
             </div>
@@ -182,11 +187,11 @@ function StockContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3">
-            <Icon3D icon={Boxes} variant="emerald" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total Units</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3">
+            <Icon3D icon={Boxes} variant="emerald" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total Units</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight">
                 {totalStockCount.toLocaleString("en-IN")}
               </p>
             </div>
@@ -194,11 +199,11 @@ function StockContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3">
-            <Icon3D icon={AlertTriangle} variant="amber" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Low Stock</p>
-              <p className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3">
+            <Icon3D icon={AlertTriangle} variant="amber" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Low Stock</p>
+              <p className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums leading-tight">
                 {lowStockCount} items
               </p>
             </div>
@@ -206,11 +211,11 @@ function StockContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3">
-            <Icon3D icon={Layers} variant="teal" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total Value</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3">
+            <Icon3D icon={Layers} variant="teal" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total Value</p>
+              <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight truncate">
                 {formatINR(totalValuation)}
               </p>
             </div>
@@ -219,8 +224,8 @@ function StockContent() {
       </motion.div>
 
       {/* Search & Filter Bar */}
-      <Card className="p-4" padding="none">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4">
+      <Card className="p-3 sm:p-4" padding="none">
+        <div className="flex items-center justify-between gap-2.5 p-3 sm:p-4">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -228,7 +233,32 @@ function StockContent() {
             className="flex-1"
           />
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Mobile Filter Button - In One Line With Search Bar */}
+          <button
+            type="button"
+            onClick={() => {
+              setTempCategory(selectedCategory);
+              setTempStatus(selectedStatus);
+              setFilterDrawerOpen(true);
+            }}
+            className={cn(
+              "sm:hidden relative flex items-center justify-center min-w-[42px] h-[42px] px-3 rounded-xl border transition-all shrink-0",
+              selectedCategory || selectedStatus
+                ? "bg-[#5B5BF0]/10 text-[#5B5BF0] border-[#5B5BF0]/40 dark:bg-[#5B5BF0]/20 dark:border-[#5B5BF0]/50"
+                : "bg-white dark:bg-[#12152A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+            )}
+            aria-label="Open filter options"
+          >
+            <SlidersHorizontal className="w-4.5 h-4.5" />
+            {(selectedCategory || selectedStatus) && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center w-4.5 h-4.5 text-[10px] font-black rounded-full bg-[#5B5BF0] text-white shadow-xs">
+                {(selectedCategory ? 1 : 0) + (selectedStatus ? 1 : 0)}
+              </span>
+            )}
+          </button>
+
+          {/* Desktop Inline Filters */}
+          <div className="hidden sm:flex items-center gap-2.5">
             <FilterSelect
               value={selectedCategory}
               onChange={setSelectedCategory}
@@ -246,7 +276,135 @@ function StockContent() {
             />
           </div>
         </div>
+
+        {/* Active Filter Chips on Mobile */}
+        {(selectedCategory || selectedStatus) && (
+          <div className="sm:hidden flex items-center gap-1.5 px-3 pb-3 pt-0 flex-wrap border-t border-slate-100 dark:border-slate-800/60 pt-2.5">
+            <span className="text-[10px] font-semibold text-slate-400">Active:</span>
+            {selectedCategory && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
+                {selectedCategory}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedStatus && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                {selectedStatus}
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory("");
+                setSelectedStatus("");
+              }}
+              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline ml-1"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </Card>
+
+      {/* Mobile Bottom Sheet Filters */}
+      <FilterDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title="Filters"
+        onClear={() => {
+          setTempCategory("");
+          setTempStatus("");
+          setSelectedCategory("");
+          setSelectedStatus("");
+          setFilterDrawerOpen(false);
+        }}
+        onApply={() => {
+          setSelectedCategory(tempCategory);
+          setSelectedStatus(tempStatus);
+          setFilterDrawerOpen(false);
+        }}
+        clearLabel="Clear Filter"
+        applyLabel="Apply Filter"
+      >
+        {/* Categories Section */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            Categories
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTempCategory("")}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                !tempCategory
+                  ? "bg-[#5B5BF0] text-white shadow-xs font-bold"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              )}
+            >
+              All Categories
+            </button>
+            {ItemCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setTempCategory(cat === tempCategory ? "" : cat)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                  tempCategory === cat
+                    ? "bg-[#5B5BF0] text-white shadow-xs font-bold"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stock Status Section */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            Stock Status
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "All Statuses", value: "", variant: null },
+              { label: "In Stock", value: "In Stock", variant: "In Stock" },
+              { label: "Low Stock", value: "Low Stock", variant: "Low Stock" },
+              { label: "Out of Stock", value: "Out of Stock", variant: "Out of Stock" },
+            ].map((st) => (
+              <button
+                key={st.label}
+                type="button"
+                onClick={() => setTempStatus(st.value === tempStatus ? "" : st.value)}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all",
+                  tempStatus === st.value
+                    ? "border-[#5B5BF0] bg-[#5B5BF0]/10 text-[#5B5BF0] font-bold dark:bg-[#5B5BF0]/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                )}
+              >
+                <span>{st.label}</span>
+                {st.variant && <Badge variant={st.variant} size="sm" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </FilterDrawer>
 
       {/* Main Inventory Content */}
       {filteredItems.length === 0 ? (

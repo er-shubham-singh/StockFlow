@@ -80,7 +80,7 @@ export function StatCard({
       hoverLift={true}
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden group border border-slate-200/80 dark:border-slate-800/80 p-5 sm:p-6 transition-all duration-300 ease-out hover:border-indigo-500/30 dark:hover:border-indigo-500/30",
+        "relative overflow-hidden group border border-slate-200/80 dark:border-slate-800/80 p-3.5 sm:p-6 transition-all duration-300 ease-out hover:border-indigo-500/30 dark:hover:border-indigo-500/30",
         onClick ? "cursor-pointer" : "cursor-default"
       )}
     >
@@ -104,16 +104,16 @@ export function StatCard({
                 : Icon?.displayName || Icon?.name)
             }
             variant={resolvedVariant}
-            size="md"
+            size="sm"
             shape="squircle"
             animate={true}
-            className="transition-transform duration-300 group-hover:scale-110"
+            className="transition-transform duration-300 group-hover:scale-110 sm:scale-110"
           />
         )}
       </div>
 
-      <div className="mt-3">
-        <div className="text-2xl sm:text-3xl text-slate-900 dark:text-slate-50 font-black tracking-tight">
+      <div className="mt-2.5 sm:mt-3">
+        <div className="text-xl sm:text-3xl text-slate-900 dark:text-slate-50 font-black tracking-tight">
           <CountUp end={value} prefix={prefix} suffix={suffix} isCurrency={isCurrency} />
         </div>
 

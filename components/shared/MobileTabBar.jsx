@@ -50,10 +50,10 @@ export function MobileTabBar() {
   return (
     <>
       {/* Floating Curved Mobile Bottom Dock */}
-      <div className="md:hidden fixed bottom-4 inset-x-4 max-w-sm mx-auto z-40 select-none pb-safe pointer-events-none">
+      <div className="md:hidden fixed bottom-3 inset-x-3 max-w-[340px] mx-auto z-40 select-none pb-safe pointer-events-none">
         <nav
           aria-label="Mobile Navigation"
-          className="relative flex items-center justify-between h-[62px] px-1.5 bg-white/95 dark:bg-[#12152A]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-[26px] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_40px_-6px_rgba(0,0,0,0.7)] pointer-events-auto"
+          className="relative flex items-center justify-between h-[56px] px-1 bg-white/95 dark:bg-[#12152A]/95 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-[22px] shadow-[0_10px_28px_-6px_rgba(0,0,0,0.18)] dark:shadow-[0_14px_36px_-6px_rgba(0,0,0,0.7)] pointer-events-auto"
         >
           {tabs.map((tab) => {
             const active = isActive(tab.href, tab.exact);

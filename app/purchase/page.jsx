@@ -15,6 +15,8 @@ import {
   Trash2,
   Printer,
   AlertCircle,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatINR, formatDate, formatDateTime, cn } from "@/lib/utils";
@@ -25,6 +27,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/FilterSelect";
+import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
@@ -48,6 +51,8 @@ function PurchaseContent() {
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [tempStatus, setTempStatus] = useState("");
 
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [prefilledItemId, setPrefilledItemId] = useState(null);
@@ -128,14 +133,14 @@ function PurchaseContent() {
         variants={cardStaggerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
       >
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={ShoppingBag} variant="teal" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total POs</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={ShoppingBag} variant="teal" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total POs</p>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight">
                 {purchases.length}
               </p>
             </div>
@@ -143,11 +148,11 @@ function PurchaseContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={Truck} variant="amber" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Pending Deliveries</p>
-              <p className="text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={Truck} variant="amber" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Pending Deliveries</p>
+              <p className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 tabular-nums leading-tight">
                 {pendingPOs.length}
               </p>
             </div>
@@ -155,11 +160,11 @@ function PurchaseContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={CheckCircle2} variant="emerald" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Received & Added</p>
-              <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={CheckCircle2} variant="emerald" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Received & Added</p>
+              <p className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight">
                 {receivedPOs.length}
               </p>
             </div>
@@ -167,11 +172,11 @@ function PurchaseContent() {
         </motion.div>
 
         <motion.div variants={cardItemVariants}>
-          <Card hoverLift padding="none" className="p-3.5 flex items-center gap-3 group">
-            <Icon3D icon={Layers} variant="primary" size="md" shape="squircle" animate={true} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400">Total Procured</p>
-              <p className="text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums">
+          <Card hoverLift padding="none" className="p-2.5 sm:p-3.5 flex items-center gap-2 sm:gap-3 group">
+            <Icon3D icon={Layers} variant="primary" size="sm" shape="squircle" animate={true} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 truncate">Total Procured</p>
+              <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums leading-tight truncate">
                 {formatINR(totalSpend)}
               </p>
             </div>
@@ -179,9 +184,9 @@ function PurchaseContent() {
         </motion.div>
       </motion.div>
 
-      {/* Filter and Search */}
-      <Card padding="none" className="p-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4">
+      {/* Search & Filter Bar */}
+      <Card padding="none" className="p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2.5 p-3 sm:p-4">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -189,15 +194,112 @@ function PurchaseContent() {
             className="flex-1"
           />
 
-          <FilterSelect
-            value={selectedStatus}
-            onChange={setSelectedStatus}
-            options={["Pending", "Received", "Cancelled"]}
-            placeholder="All PO Statuses"
-            className="w-36 sm:w-44"
-          />
+          {/* Mobile Filter Button - In One Line With Search Bar */}
+          <button
+            type="button"
+            onClick={() => {
+              setTempStatus(selectedStatus);
+              setFilterDrawerOpen(true);
+            }}
+            className={cn(
+              "sm:hidden relative flex items-center justify-center min-w-[42px] h-[42px] px-3 rounded-xl border transition-all shrink-0",
+              selectedStatus
+                ? "bg-[#5B5BF0]/10 text-[#5B5BF0] border-[#5B5BF0]/40 dark:bg-[#5B5BF0]/20 dark:border-[#5B5BF0]/50"
+                : "bg-white dark:bg-[#12152A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+            )}
+            aria-label="Open filter options"
+          >
+            <SlidersHorizontal className="w-4.5 h-4.5" />
+            {selectedStatus && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center w-4.5 h-4.5 text-[10px] font-black rounded-full bg-[#5B5BF0] text-white shadow-xs">
+                1
+              </span>
+            )}
+          </button>
+
+          {/* Desktop Inline Filter */}
+          <div className="hidden sm:flex items-center gap-2.5">
+            <FilterSelect
+              value={selectedStatus}
+              onChange={setSelectedStatus}
+              options={["Pending", "Received", "Cancelled"]}
+              placeholder="All PO Statuses"
+              className="w-36 sm:w-44"
+            />
+          </div>
         </div>
+
+        {/* Active Filter Chip on Mobile */}
+        {selectedStatus && (
+          <div className="sm:hidden flex items-center gap-1.5 px-3 pb-3 pt-0 flex-wrap border-t border-slate-100 dark:border-slate-800/60 pt-2.5">
+            <span className="text-[10px] font-semibold text-slate-400">Active:</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
+              {selectedStatus}
+              <button
+                type="button"
+                onClick={() => setSelectedStatus("")}
+                className="hover:opacity-75 p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedStatus("")}
+              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline ml-1"
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </Card>
+
+      {/* Mobile Bottom Sheet Filters */}
+      <FilterDrawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title="Filters"
+        onClear={() => {
+          setTempStatus("");
+          setSelectedStatus("");
+          setFilterDrawerOpen(false);
+        }}
+        onApply={() => {
+          setSelectedStatus(tempStatus);
+          setFilterDrawerOpen(false);
+        }}
+        clearLabel="Clear Filter"
+        applyLabel="Apply Filter"
+      >
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            PO Status
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "All Statuses", value: "", variant: null },
+              { label: "Pending", value: "Pending", variant: "Pending" },
+              { label: "Received", value: "Received", variant: "Received" },
+              { label: "Cancelled", value: "Cancelled", variant: "Cancelled" },
+            ].map((st) => (
+              <button
+                key={st.label}
+                type="button"
+                onClick={() => setTempStatus(st.value === tempStatus ? "" : st.value)}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-xl border text-xs font-semibold transition-all",
+                  tempStatus === st.value
+                    ? "border-[#5B5BF0] bg-[#5B5BF0]/10 text-[#5B5BF0] font-bold dark:bg-[#5B5BF0]/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#181C38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                )}
+              >
+                <span>{st.label}</span>
+                {st.variant && <Badge variant={st.variant} size="sm" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </FilterDrawer>
 
       {/* PO Listing */}
       {filteredPurchases.length === 0 ? (

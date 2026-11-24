@@ -106,10 +106,9 @@ export default function DashboardPage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">
               Inventory Overview
             </h1>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <Badge variant="Active" size="sm" className="hidden sm:inline-flex">
               Live Sync
-            </span>
+            </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Real-time stock valuation, order pipeline, and critical inventory alerts.
@@ -255,6 +254,9 @@ export default function DashboardPage() {
                     <span className="text-[11px] text-slate-400">
                       (Min: {item.minLevel})
                     </span>
+                    <Badge variant={item.status} size="sm">
+                      {item.status}
+                    </Badge>
                   </div>
                 </div>
 
