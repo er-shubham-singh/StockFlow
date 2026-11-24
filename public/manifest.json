@@ -1,0 +1,21 @@
+{
+  "name": "StockFlow — Inventory Management System",
+  "short_name": "StockFlow",
+  "description": "Modern Inventory Management SaaS Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F8FC",
+  "theme_color": "#5B5BF0",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}

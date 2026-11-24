@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F7F8FC;
+  --surface: #FFFFFF;
+  --surface-subtle: #F1F4F9;
+  --surface-hover: #F8FAFC;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(226, 232, 240, 0.8);
+}
+
+.dark {
+  --background: #0B0D17;
+  --surface: #12152A;
+  --surface-subtle: #181C38;
+  --surface-hover: #1A1F3E;
+  --border: #1E233D;
+  --border-strong: #2A3154;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --glass-bg: rgba(18, 21, 42, 0.82);
+  --glass-border: rgba(30, 35, 61, 0.8);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glass effect for header and overlays */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: var(--glass-border);
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Print styles for Invoice */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* 3D Kinetic Icon Keyframes - Continuous 360 Hardware-Accelerated Rotation */
+@keyframes clock-sui-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-clock-sui {
+  animation: clock-sui-spin 3s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+.animate-clock-hour-sui {
+  animation: clock-sui-spin 18s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes truck-wheel-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-wheel-front {
+  animation: truck-wheel-spin 1.4s linear infinite;
+  transform-origin: 7px 18px;
+  transform-box: view-box;
+}
+
+.animate-wheel-rear {
+  animation: truck-wheel-spin 1.4s linear infinite;
+  transform-origin: 17px 18px;
+  transform-box: view-box;
+}

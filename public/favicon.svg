@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="sf-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B5BF0" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="sf-gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#sf-grad)" />
+  <!-- Gloss reflection highlight -->
+  <rect x="2" y="2" width="60" height="30" rx="14" fill="url(#sf-gloss)" />
+  <!-- 3D Isometric Inventory Box -->
+  <path d="M32 15L48 24.2V42.8L32 52L16 42.8V24.2L32 15Z" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linejoin="round" />
+  <path d="M32 15V33.5M48 24.2L32 33.5M16 24.2L32 33.5M32 33.5V52" stroke="#FFFFFF" stroke-width="3.5" stroke-linejoin="round" />
+  <!-- Accent Core Node -->
+  <circle cx="32" cy="33.5" r="3.5" fill="#14B8A6" />
+</svg>
