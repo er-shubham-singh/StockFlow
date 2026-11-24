@@ -17,6 +17,15 @@ export function SalesPurchaseChart({ sales, purchases }) {
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef(null);
 
+  // Direct element references for 60fps / 120fps GPU translation
+  const sDot1Ref = useRef(null);
+  const sDot2Ref = useRef(null);
+  const sDot3Ref = useRef(null);
+
+  const pDot1Ref = useRef(null);
+  const pDot2Ref = useRef(null);
+  const pDot3Ref = useRef(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -44,8 +53,22 @@ export function SalesPurchaseChart({ sales, purchases }) {
         .reduce((sum, p) => sum + p.total, 0);
 
       // Baseline realistic trend
-      const baseSales = key === "2024-06" ? 64000 : key === "2024-07" ? 78000 : key === "2024-08" ? 92000 : 0;
-      const basePurchases = key === "2024-06" ? 52000 : key === "2024-07" ? 61000 : key === "2024-08" ? 74000 : 0;
+      const baseSales =
+        key === "2024-06"
+          ? 64000
+          : key === "2024-07"
+          ? 78000
+          : key === "2024-08"
+          ? 92000
+          : 0;
+      const basePurchases =
+        key === "2024-06"
+          ? 52000
+          : key === "2024-07"
+          ? 61000
+          : key === "2024-08"
+          ? 74000
+          : 0;
 
       return {
         month: label,
@@ -62,11 +85,85 @@ export function SalesPurchaseChart({ sales, purchases }) {
     let animId = null;
     let lastTime = performance.now();
     let salesProgress = 0;
-    let purchasesProgress = 0.25;
+    let purchasesProgress = 0.2;
 
-    // Speeds: complete traversal in ~4.8s (sales) and ~5.6s (purchases)
-    const salesSpeed = 1 / 4800;
-    const purchasesSpeed = 1 / 5600;
+    // Speeds: complete traversal in ~5.2s (sales) and ~5.8s (purchases)
+    const salesSpeed = 1 / 5200;
+    const purchasesSpeed = 1 / 5800;
+
+    let cachedSalesPath = null;
+    let cachedPurchasesPath = null;
+    let salesLen = 0;
+    let purchasesLen = 0;
+
+    const findPaths = () => {
+      if (!containerRef.current) return false;
+
+      // Primary search: recharts-area-curve elements
+      const areaCurves = containerRef.current.querySelectorAll(
+        ".recharts-area-curve"
+      );
+      if (areaCurves && areaCurves.length >= 2) {
+        cachedSalesPath = areaCurves[0];
+        cachedPurchasesPath = areaCurves[1];
+      } else {
+        // Fallback: search all path elements in SVG
+        const allPaths = Array.from(
+          containerRef.current.querySelectorAll("path")
+        );
+        const curveCandidates = allPaths.filter((p) => {
+          const d = p.getAttribute("d") || "";
+          return d.includes("C") || d.includes("c");
+        });
+        if (curveCandidates.length >= 2) {
+          cachedSalesPath = curveCandidates[0];
+          cachedPurchasesPath = curveCandidates[1];
+        }
+      }
+
+      if (
+        cachedSalesPath &&
+        typeof cachedSalesPath.getTotalLength === "function" &&
+        cachedPurchasesPath &&
+        typeof cachedPurchasesPath.getTotalLength === "function"
+      ) {
+        try {
+          salesLen = cachedSalesPath.getTotalLength();
+          purchasesLen = cachedPurchasesPath.getTotalLength();
+          return salesLen > 20 && purchasesLen > 20;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      return false;
+    };
+
+    // Watch for container resizes to update path lengths
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        cachedSalesPath = null;
+        cachedPurchasesPath = null;
+        salesLen = 0;
+        purchasesLen = 0;
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
+    const updateDot = (dotRef, path, progress, totalLen) => {
+      if (!dotRef.current || !path || totalLen <= 0) return;
+      const normalizedProg = ((progress % 1) + 1) % 1;
+      const dist = normalizedProg * totalLen;
+
+      try {
+        const pt = path.getPointAtLength(dist);
+        dotRef.current.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+        if (dotRef.current.style.opacity !== "1") {
+          dotRef.current.style.opacity = "1";
+        }
+      } catch (e) {}
+    };
 
     const frame = (now) => {
       const delta = Math.min(now - lastTime, 100);
@@ -75,89 +172,21 @@ export function SalesPurchaseChart({ sales, purchases }) {
       salesProgress = (salesProgress + delta * salesSpeed) % 1;
       purchasesProgress = (purchasesProgress + delta * purchasesSpeed) % 1;
 
-      if (containerRef.current) {
-        // Robust query: find the exact SVG path by stroke color attributes
-        const salesPath =
-          containerRef.current.querySelector('path[stroke="#5B5BF0"]') ||
-          containerRef.current.querySelector('.recharts-area-curve:not([fill])') ||
-          containerRef.current.querySelectorAll('.recharts-curve')[1];
+      // Ensure paths are ready
+      if (!cachedSalesPath || salesLen <= 20 || !cachedPurchasesPath || purchasesLen <= 20) {
+        findPaths();
+      }
 
-        const purchasesPath =
-          containerRef.current.querySelector('path[stroke="#14B8A6"]') ||
-          containerRef.current.querySelectorAll('.recharts-curve')[3];
+      if (cachedSalesPath && salesLen > 20) {
+        updateDot(sDot1Ref, cachedSalesPath, salesProgress, salesLen);
+        updateDot(sDot2Ref, cachedSalesPath, (salesProgress + 0.333) % 1, salesLen);
+        updateDot(sDot3Ref, cachedSalesPath, (salesProgress + 0.666) % 1, salesLen);
+      }
 
-        // Animate a flowing particle bead along a curve
-        const updateBead = (beadPrefix, pathElem, progress, totalLen) => {
-          if (!pathElem || typeof pathElem.getPointAtLength !== "function") return;
-          const headDist = progress * totalLen;
-          if (headDist < 0 || headDist > totalLen) return;
-
-          const pt = pathElem.getPointAtLength(headDist);
-
-          const halo = containerRef.current.querySelector(`#${beadPrefix}-halo`);
-          const outer = containerRef.current.querySelector(`#${beadPrefix}-outer`);
-          const inner = containerRef.current.querySelector(`#${beadPrefix}-inner`);
-          const trail1 = containerRef.current.querySelector(`#${beadPrefix}-trail-1`);
-          const trail2 = containerRef.current.querySelector(`#${beadPrefix}-trail-2`);
-
-          if (halo) {
-            halo.setAttribute("cx", String(pt.x));
-            halo.setAttribute("cy", String(pt.y));
-          }
-          if (outer) {
-            outer.setAttribute("cx", String(pt.x));
-            outer.setAttribute("cy", String(pt.y));
-          }
-          if (inner) {
-            inner.setAttribute("cx", String(pt.x));
-            inner.setAttribute("cy", String(pt.y));
-          }
-
-          // Trailing comet particles
-          const setTrail = (el, offset, baseOpacity) => {
-            if (!el) return;
-            const dist = headDist - offset;
-            if (dist > 0 && dist <= totalLen) {
-              const tPt = pathElem.getPointAtLength(dist);
-              el.setAttribute("cx", String(tPt.x));
-              el.setAttribute("cy", String(tPt.y));
-              el.style.opacity = String(baseOpacity);
-            } else {
-              el.style.opacity = "0";
-            }
-          };
-
-          setTrail(trail1, 14, 0.65);
-          setTrail(trail2, 28, 0.35);
-        };
-
-        // 1. Update Sales Particles (Two staggered flowing beads for continuous flow)
-        if (salesPath && typeof salesPath.getTotalLength === "function") {
-          try {
-            const totalLen = salesPath.getTotalLength();
-            if (totalLen > 20) {
-              const salesGroup = containerRef.current.querySelector("#sales-flow-particles");
-              if (salesGroup) salesGroup.style.opacity = "1";
-
-              updateBead("sales-bead-1", salesPath, salesProgress, totalLen);
-              updateBead("sales-bead-2", salesPath, (salesProgress + 0.5) % 1, totalLen);
-            }
-          } catch (e) {}
-        }
-
-        // 2. Update Purchases Particles (Two staggered flowing beads for continuous flow)
-        if (purchasesPath && typeof purchasesPath.getTotalLength === "function") {
-          try {
-            const totalLen = purchasesPath.getTotalLength();
-            if (totalLen > 20) {
-              const purchasesGroup = containerRef.current.querySelector("#purchases-flow-particles");
-              if (purchasesGroup) purchasesGroup.style.opacity = "1";
-
-              updateBead("purchases-bead-1", purchasesPath, purchasesProgress, totalLen);
-              updateBead("purchases-bead-2", purchasesPath, (purchasesProgress + 0.5) % 1, totalLen);
-            }
-          } catch (e) {}
-        }
+      if (cachedPurchasesPath && purchasesLen > 20) {
+        updateDot(pDot1Ref, cachedPurchasesPath, purchasesProgress, purchasesLen);
+        updateDot(pDot2Ref, cachedPurchasesPath, (purchasesProgress + 0.333) % 1, purchasesLen);
+        updateDot(pDot3Ref, cachedPurchasesPath, (purchasesProgress + 0.666) % 1, purchasesLen);
       }
 
       animId = requestAnimationFrame(frame);
@@ -167,6 +196,7 @@ export function SalesPurchaseChart({ sales, purchases }) {
 
     return () => {
       if (animId) cancelAnimationFrame(animId);
+      if (resizeObserver) resizeObserver.disconnect();
     };
   }, [mounted, chartData]);
 
@@ -179,8 +209,12 @@ export function SalesPurchaseChart({ sales, purchases }) {
       return (
         <div className="p-3.5 bg-white/95 dark:bg-[#12152A]/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.25)] text-xs space-y-2 select-none min-w-[170px]">
           <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
-            <p className="font-extrabold text-slate-900 dark:text-slate-100">{label} 2024</p>
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Trend</span>
+            <p className="font-extrabold text-slate-900 dark:text-slate-100">
+              {label} 2024
+            </p>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Trend
+            </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-indigo-600 dark:text-indigo-400 font-semibold">
@@ -191,7 +225,9 @@ export function SalesPurchaseChart({ sales, purchases }) {
               </span>
               <span className="text-slate-600 dark:text-slate-300">Sales:</span>
             </div>
-            <span className="font-black tabular-nums">{formatINR(payload[0].value)}</span>
+            <span className="font-black tabular-nums">
+              {formatINR(payload[0].value)}
+            </span>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-teal-600 dark:text-teal-400 font-semibold">
@@ -200,9 +236,13 @@ export function SalesPurchaseChart({ sales, purchases }) {
                 <span className="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
               </span>
-              <span className="text-slate-600 dark:text-slate-300">Purchases:</span>
+              <span className="text-slate-600 dark:text-slate-300">
+                Purchases:
+              </span>
             </div>
-            <span className="font-black tabular-nums">{formatINR(payload[1].value)}</span>
+            <span className="font-black tabular-nums">
+              {formatINR(payload[1].value)}
+            </span>
           </div>
         </div>
       );
@@ -220,10 +260,25 @@ export function SalesPurchaseChart({ sales, purchases }) {
           <defs>
             {/* 3D Curve Drop Shadows & Neon Depth Glow */}
             <filter id="sales3DGlow" x="-20%" y="-20%" width="150%" height="150%">
-              <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#5B5BF0" floodOpacity="0.45" />
+              <feDropShadow
+                dx="0"
+                dy="5"
+                stdDeviation="5"
+                floodColor="#5B5BF0"
+                floodOpacity="0.45"
+              />
             </filter>
-            <filter id="purchases3DGlow" x="-20%" y="-20%" width="150%" height="150%">
-              <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#14B8A6" floodOpacity="0.45" />
+            <filter
+              id="purchases3DGlow"
+              x="-20%" y="-20%" width="150%" height="150%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="5"
+                stdDeviation="5"
+                floodColor="#14B8A6"
+                floodOpacity="0.45"
+              />
             </filter>
 
             {/* 3D Multi-Stop Surface Gradients */}
@@ -303,48 +358,108 @@ export function SalesPurchaseChart({ sales, purchases }) {
         aria-hidden="true"
       >
         <defs>
-          <filter id="particleGlowSales" x="-100%" y="-100%" width="300%" height="300%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#706BFA" floodOpacity="0.9" />
-            <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#5B5BF0" floodOpacity="0.6" />
+          <filter
+            id="particleGlowSales"
+            x="-100%"
+            y="-100%"
+            width="300%"
+            height="300%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="3"
+              floodColor="#706BFA"
+              floodOpacity="0.9"
+            />
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="6"
+              floodColor="#5B5BF0"
+              floodOpacity="0.6"
+            />
           </filter>
-          <filter id="particleGlowPurchases" x="-100%" y="-100%" width="300%" height="300%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#2DD4BF" floodOpacity="0.9" />
-            <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#14B8A6" floodOpacity="0.6" />
+          <filter
+            id="particleGlowPurchases"
+            x="-100%"
+            y="-100%"
+            width="300%"
+            height="300%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="3"
+              floodColor="#2DD4BF"
+              floodOpacity="0.9"
+            />
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="6"
+              floodColor="#14B8A6"
+              floodOpacity="0.6"
+            />
           </filter>
         </defs>
 
-        {/* Continuous Flowing Particles on Sales Curve (Indigo) */}
-        <g id="sales-flow-particles" style={{ opacity: 0 }} className="transition-opacity duration-300">
-          {/* Bead 1 */}
-          <circle id="sales-bead-1-trail-2" r="2.2" fill="#5B5BF0" opacity="0.35" />
-          <circle id="sales-bead-1-trail-1" r="3.2" fill="#706BFA" opacity="0.65" />
-          <circle id="sales-bead-1-halo" r="8" fill="#5B5BF0" opacity="0.35" filter="url(#particleGlowSales)" />
-          <circle id="sales-bead-1-outer" r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
-          <circle id="sales-bead-1-inner" r="2.8" fill="#FFFFFF" />
+        {/* Continuous Flowing Particles on Sales Curve (Indigo, 3 staggered beads) */}
+        <g id="sales-particles-group">
+          <g ref={sDot1Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            {/* Trailing comet particles */}
+            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
+            {/* 3D Pulsating Halo */}
+            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
+            {/* Main Glowing Bead */}
+            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
+            {/* Sparkling Core */}
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
 
-          {/* Bead 2 (Continuous staggered stream) */}
-          <circle id="sales-bead-2-trail-2" r="2.2" fill="#5B5BF0" opacity="0.35" />
-          <circle id="sales-bead-2-trail-1" r="3.2" fill="#706BFA" opacity="0.65" />
-          <circle id="sales-bead-2-halo" r="8" fill="#5B5BF0" opacity="0.35" filter="url(#particleGlowSales)" />
-          <circle id="sales-bead-2-outer" r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
-          <circle id="sales-bead-2-inner" r="2.8" fill="#FFFFFF" />
+          <g ref={sDot2Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
+            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
+            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
+
+          <g ref={sDot3Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
+            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
+            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
         </g>
 
-        {/* Continuous Flowing Particles on Purchases Curve (Teal) */}
-        <g id="purchases-flow-particles" style={{ opacity: 0 }} className="transition-opacity duration-300">
-          {/* Bead 1 */}
-          <circle id="purchases-bead-1-trail-2" r="2.2" fill="#14B8A6" opacity="0.35" />
-          <circle id="purchases-bead-1-trail-1" r="3.2" fill="#2DD4BF" opacity="0.65" />
-          <circle id="purchases-bead-1-halo" r="8" fill="#14B8A6" opacity="0.35" filter="url(#particleGlowPurchases)" />
-          <circle id="purchases-bead-1-outer" r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
-          <circle id="purchases-bead-1-inner" r="2.8" fill="#FFFFFF" />
+        {/* Continuous Flowing Particles on Purchases Curve (Teal, 3 staggered beads) */}
+        <g id="purchases-particles-group">
+          <g ref={pDot1Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
+            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
+            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
 
-          {/* Bead 2 (Continuous staggered stream) */}
-          <circle id="purchases-bead-2-trail-2" r="2.2" fill="#14B8A6" opacity="0.35" />
-          <circle id="purchases-bead-2-trail-1" r="3.2" fill="#2DD4BF" opacity="0.65" />
-          <circle id="purchases-bead-2-halo" r="8" fill="#14B8A6" opacity="0.35" filter="url(#particleGlowPurchases)" />
-          <circle id="purchases-bead-2-outer" r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
-          <circle id="purchases-bead-2-inner" r="2.8" fill="#FFFFFF" />
+          <g ref={pDot2Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
+            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
+            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
+
+          <g ref={pDot3Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
+            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
+            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
+            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
+            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
+            <circle r="2.6" fill="#FFFFFF" />
+          </g>
         </g>
       </svg>
     </div>
