@@ -291,14 +291,20 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Legend */}
+            {/* Legend with Live 3D Beacons */}
             <div className="flex items-center gap-4 text-xs font-semibold">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-[#5B5BF0]" />
+                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                  <span className="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-[#5B5BF0] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#5B5BF0] shadow-[0_0_8px_#5B5BF0]" />
+                </span>
                 <span className="text-slate-700 dark:text-slate-300">Sales</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-[#14B8A6]" />
+                <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                  <span className="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-[#14B8A6] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14B8A6] shadow-[0_0_8px_#14B8A6]" />
+                </span>
                 <span className="text-slate-700 dark:text-slate-300">Purchases</span>
               </div>
             </div>

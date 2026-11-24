@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatINR, formatDate, formatDateTime, cn } from "@/lib/utils";
+import { ItemCategories } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -51,8 +52,10 @@ function PurchaseContent() {
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [tempStatus, setTempStatus] = useState("");
+  const [tempCategory, setTempCategory] = useState("");
 
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [prefilledItemId, setPrefilledItemId] = useState(null);
@@ -96,9 +99,16 @@ function PurchaseContent() {
       const matchesStatus =
         !selectedStatus || po.status === selectedStatus;
 
-      return matchesSearch && matchesStatus;
+      const matchesCategory =
+        !selectedCategory ||
+        po.items?.some((poItem) => {
+          const matchedItem = items.find((it) => it.id === poItem.itemId);
+          return matchedItem?.category === selectedCategory;
+        });
+
+      return matchesSearch && matchesStatus && matchesCategory;
     });
-  }, [purchases, search, selectedStatus]);
+  }, [purchases, items, search, selectedStatus, selectedCategory]);
 
   // Metrics
   const totalSpend = purchases
@@ -199,26 +209,35 @@ function PurchaseContent() {
             type="button"
             onClick={() => {
               setTempStatus(selectedStatus);
+              setTempCategory(selectedCategory);
               setFilterDrawerOpen(true);
             }}
             className={cn(
               "sm:hidden relative flex items-center justify-center min-w-[42px] h-[42px] px-3 rounded-xl border transition-all shrink-0",
-              selectedStatus
+              selectedStatus || selectedCategory
                 ? "bg-[#5B5BF0]/10 text-[#5B5BF0] border-[#5B5BF0]/40 dark:bg-[#5B5BF0]/20 dark:border-[#5B5BF0]/50"
                 : "bg-white dark:bg-[#12152A] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
             )}
             aria-label="Open filter options"
           >
             <SlidersHorizontal className="w-4.5 h-4.5" />
-            {selectedStatus && (
+            {(selectedStatus || selectedCategory) && (
               <span className="absolute -top-1 -right-1 flex items-center justify-center w-4.5 h-4.5 text-[10px] font-black rounded-full bg-[#5B5BF0] text-white shadow-xs">
-                1
+                {(selectedStatus ? 1 : 0) + (selectedCategory ? 1 : 0)}
               </span>
             )}
           </button>
 
-          {/* Desktop Inline Filter */}
+          {/* Desktop Inline Filters */}
           <div className="hidden sm:flex items-center gap-2.5">
+            <FilterSelect
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              options={ItemCategories}
+              placeholder="All Categories"
+              className="w-36 sm:w-44"
+            />
+
             <FilterSelect
               value={selectedStatus}
               onChange={setSelectedStatus}
@@ -229,23 +248,40 @@ function PurchaseContent() {
           </div>
         </div>
 
-        {/* Active Filter Chip on Mobile */}
-        {selectedStatus && (
+        {/* Active Filter Chips on Mobile */}
+        {(selectedStatus || selectedCategory) && (
           <div className="sm:hidden flex items-center gap-1.5 px-3 pb-3 pt-0 flex-wrap border-t border-slate-100 dark:border-slate-800/60 pt-2.5">
             <span className="text-[10px] font-semibold text-slate-400">Active:</span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
-              {selectedStatus}
-              <button
-                type="button"
-                onClick={() => setSelectedStatus("")}
-                className="hover:opacity-75 p-0.5"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
+            {selectedCategory && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
+                {selectedCategory}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {selectedStatus && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#5B5BF0]/10 text-[#5B5BF0] border border-[#5B5BF0]/30">
+                {selectedStatus}
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("")}
+                  className="hover:opacity-75 p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
             <button
               type="button"
-              onClick={() => setSelectedStatus("")}
+              onClick={() => {
+                setSelectedStatus("");
+                setSelectedCategory("");
+              }}
               className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline ml-1"
             >
               Clear
@@ -261,17 +297,57 @@ function PurchaseContent() {
         title="Filters"
         onClear={() => {
           setTempStatus("");
+          setTempCategory("");
           setSelectedStatus("");
+          setSelectedCategory("");
           setFilterDrawerOpen(false);
         }}
         onApply={() => {
           setSelectedStatus(tempStatus);
+          setSelectedCategory(tempCategory);
           setFilterDrawerOpen(false);
         }}
         clearLabel="Clear Filter"
         applyLabel="Apply Filter"
       >
+        {/* Categories Section */}
         <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
+            Categories
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setTempCategory("")}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                !tempCategory
+                  ? "bg-[#5B5BF0] text-white shadow-xs font-bold"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              )}
+            >
+              All Categories
+            </button>
+            {ItemCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setTempCategory(cat === tempCategory ? "" : cat)}
+                className={cn(
+                  "px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                  tempCategory === cat
+                    ? "bg-[#5B5BF0] text-white shadow-xs font-bold"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* PO Status Section */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
             PO Status
           </label>
