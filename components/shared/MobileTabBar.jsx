@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   BarChart3,
   Users,
+  Building2,
   RotateCcw,
   Sun,
   Moon,
@@ -45,7 +46,9 @@ export function MobileTabBar() {
   };
 
   const isMoreActive =
-    pathname.startsWith("/reports") || pathname.startsWith("/contacts");
+    pathname.startsWith("/reports") ||
+    pathname.startsWith("/contacts") ||
+    pathname.startsWith("/warehouse");
 
   return (
     <>
@@ -170,6 +173,29 @@ export function MobileTabBar() {
                 </p>
                 <p className="text-xs text-slate-400">
                   Stock valuation, monthly sales & purchase reports
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/warehouse"
+              prefetch={true}
+              onClick={() => setMoreDrawerOpen(false)}
+              className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group"
+            >
+              <Icon3D
+                icon={Building2}
+                variant="teal"
+                size="md"
+                shape="squircle"
+                animate={true}
+              />
+              <div>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                  Godowns & Transfers
+                </p>
+                <p className="text-xs text-slate-400">
+                  Manage warehouse facilities & inter-depot stock transit
                 </p>
               </div>
             </Link>

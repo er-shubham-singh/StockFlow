@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   BarChart3,
   Users,
+  Building2,
   ChevronLeft,
   ChevronRight,
   Boxes,
@@ -56,6 +57,11 @@ export function Sidebar() {
       label: "Reports",
       href: "/reports",
       icon: BarChart3,
+    },
+    {
+      label: "Godowns",
+      href: "/warehouse",
+      icon: Building2,
     },
     {
       label: "Contacts",
