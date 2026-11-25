@@ -16,7 +16,7 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 import { GlobalSearchModal } from "./GlobalSearchModal";
 
 export function Navbar() {
-  const { theme, toggleTheme, resetDemoData } = useAppStore();
+  const { theme, toggleTheme, resetDemoData, triggerAction } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -118,8 +118,10 @@ export function Navbar() {
       <ConfirmDialog
         isOpen={resetModalOpen}
         onClose={() => setResetModalOpen(false)}
-        onConfirm={() => {
-          resetDemoData();
+        onConfirm={async () => {
+          await triggerAction(async () => {
+            resetDemoData();
+          }, "Resetting System Demo Data...");
           setResetModalOpen(false);
         }}
         title="Reset Demo Data?"

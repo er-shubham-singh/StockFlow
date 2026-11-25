@@ -17,14 +17,9 @@ export function SalesPurchaseChart({ sales, purchases }) {
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef(null);
 
-  // Direct element references for 60fps / 120fps GPU translation
-  const sDot1Ref = useRef(null);
-  const sDot2Ref = useRef(null);
-  const sDot3Ref = useRef(null);
-
-  const pDot1Ref = useRef(null);
-  const pDot2Ref = useRef(null);
-  const pDot3Ref = useRef(null);
+  // Direct element references for 60fps/120fps GPU translation
+  const sDotRef = useRef(null);
+  const pDotRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -78,18 +73,22 @@ export function SalesPurchaseChart({ sales, purchases }) {
     });
   }, [sales, purchases]);
 
-  // Continuous 3D Flowing Particles Animation Loop
+  // 3D Flowing Circular Dot Animation Loop
+  // Top dot (Sales) starts first, then ~1 inch distance behind, the other dot (Purchases) starts and follows along
   useEffect(() => {
     if (!mounted) return;
 
     let animId = null;
-    let lastTime = performance.now();
-    let salesProgress = 0;
-    let purchasesProgress = 0.2;
+    let startTime = null;
 
-    // Speeds: complete traversal in ~5.2s (sales) and ~5.8s (purchases)
-    const salesSpeed = 1 / 5200;
-    const purchasesSpeed = 1 / 5800;
+    // Timing parameters:
+    // Traversal: 3600ms across the full curve
+    // Offset: 580ms (corresponds to ~1 inch / 90px lead distance)
+    // Pause: 250ms brief pause before restarting next wave
+    const TRAVERSAL_MS = 3600;
+    const OFFSET_MS = 580;
+    const PAUSE_MS = 250;
+    const TOTAL_CYCLE_MS = TRAVERSAL_MS + OFFSET_MS + PAUSE_MS; // 4430ms
 
     let cachedSalesPath = null;
     let cachedPurchasesPath = null;
@@ -151,42 +150,80 @@ export function SalesPurchaseChart({ sales, purchases }) {
       resizeObserver.observe(containerRef.current);
     }
 
-    const updateDot = (dotRef, path, progress, totalLen) => {
-      if (!dotRef.current || !path || totalLen <= 0) return;
-      const normalizedProg = ((progress % 1) + 1) % 1;
-      const dist = normalizedProg * totalLen;
-
-      try {
-        const pt = path.getPointAtLength(dist);
-        dotRef.current.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
-        if (dotRef.current.style.opacity !== "1") {
-          dotRef.current.style.opacity = "1";
-        }
-      } catch (e) {}
-    };
-
     const frame = (now) => {
-      const delta = Math.min(now - lastTime, 100);
-      lastTime = now;
-
-      salesProgress = (salesProgress + delta * salesSpeed) % 1;
-      purchasesProgress = (purchasesProgress + delta * purchasesSpeed) % 1;
+      if (!startTime) startTime = now;
+      const elapsed = now - startTime;
+      const cycleTime = elapsed % TOTAL_CYCLE_MS;
 
       // Ensure paths are ready
-      if (!cachedSalesPath || salesLen <= 20 || !cachedPurchasesPath || purchasesLen <= 20) {
+      if (
+        !cachedSalesPath ||
+        salesLen <= 20 ||
+        !cachedPurchasesPath ||
+        purchasesLen <= 20
+      ) {
         findPaths();
       }
 
-      if (cachedSalesPath && salesLen > 20) {
-        updateDot(sDot1Ref, cachedSalesPath, salesProgress, salesLen);
-        updateDot(sDot2Ref, cachedSalesPath, (salesProgress + 0.333) % 1, salesLen);
-        updateDot(sDot3Ref, cachedSalesPath, (salesProgress + 0.666) % 1, salesLen);
-      }
+      const sDot = sDotRef.current;
+      const pDot = pDotRef.current;
 
-      if (cachedPurchasesPath && purchasesLen > 20) {
-        updateDot(pDot1Ref, cachedPurchasesPath, purchasesProgress, purchasesLen);
-        updateDot(pDot2Ref, cachedPurchasesPath, (purchasesProgress + 0.333) % 1, purchasesLen);
-        updateDot(pDot3Ref, cachedPurchasesPath, (purchasesProgress + 0.666) % 1, purchasesLen);
+      if (
+        cachedSalesPath &&
+        cachedPurchasesPath &&
+        salesLen > 20 &&
+        purchasesLen > 20
+      ) {
+        // --- 1. Top Dot (Sales): Starts at t = 0 ---
+        if (cycleTime < TRAVERSAL_MS) {
+          const pSales = cycleTime / TRAVERSAL_MS;
+          const distSales = pSales * salesLen;
+          try {
+            const pt = cachedSalesPath.getPointAtLength(distSales);
+            if (sDot) {
+              sDot.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+              // Fade in over first 5%, fade out over last 5%
+              const opacity =
+                pSales < 0.05
+                  ? pSales / 0.05
+                  : pSales > 0.95
+                  ? (1 - pSales) / 0.05
+                  : 1;
+              sDot.style.opacity = String(opacity);
+            }
+          } catch (e) {}
+        } else {
+          if (sDot && sDot.style.opacity !== "0") {
+            sDot.style.opacity = "0";
+          }
+        }
+
+        // --- 2. Other Dot (Purchases): Starts ~1 inch behind (OFFSET_MS = 580ms) ---
+        if (
+          cycleTime >= OFFSET_MS &&
+          cycleTime < OFFSET_MS + TRAVERSAL_MS
+        ) {
+          const pPurchases = (cycleTime - OFFSET_MS) / TRAVERSAL_MS;
+          const distPurchases = pPurchases * purchasesLen;
+          try {
+            const pt = cachedPurchasesPath.getPointAtLength(distPurchases);
+            if (pDot) {
+              pDot.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+              // Fade in over first 5%, fade out over last 5%
+              const opacity =
+                pPurchases < 0.05
+                  ? pPurchases / 0.05
+                  : pPurchases > 0.95
+                  ? (1 - pPurchases) / 0.05
+                  : 1;
+              pDot.style.opacity = String(opacity);
+            }
+          } catch (e) {}
+        } else {
+          if (pDot && pDot.style.opacity !== "0") {
+            pDot.style.opacity = "0";
+          }
+        }
       }
 
       animId = requestAnimationFrame(frame);
@@ -352,7 +389,7 @@ export function SalesPurchaseChart({ sales, purchases }) {
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Floating 3D Flowing Particle Dots & Comet Trail Overlay */}
+      {/* Floating 3D Flowing Circular Dot Overlay */}
       <svg
         className="absolute inset-0 pointer-events-none w-full h-full overflow-visible z-20"
         aria-hidden="true"
@@ -404,62 +441,42 @@ export function SalesPurchaseChart({ sales, purchases }) {
           </filter>
         </defs>
 
-        {/* Continuous Flowing Particles on Sales Curve (Indigo, 3 staggered beads) */}
-        <g id="sales-particles-group">
-          <g ref={sDot1Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            {/* Trailing comet particles */}
-            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
-            {/* 3D Pulsating Halo */}
-            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
-            {/* Main Glowing Bead */}
-            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
-            {/* Sparkling Core */}
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
-
-          <g ref={sDot2Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
-            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
-            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
-
-          <g ref={sDot3Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            <circle cx="-12" cy="0" r="1.5" fill="#5B5BF0" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#706BFA" opacity="0.6" />
-            <circle r="9" fill="#5B5BF0" opacity="0.3" filter="url(#particleGlowSales)" />
-            <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
+        {/* Top Dot: Single Circular Dot for Sales Curve (Indigo) */}
+        <g
+          ref={sDotRef}
+          style={{ opacity: 0 }}
+          className="transition-opacity duration-150 pointer-events-none"
+        >
+          {/* Outer Pulsating 3D Halo */}
+          <circle
+            r="10"
+            fill="#5B5BF0"
+            opacity="0.3"
+            filter="url(#particleGlowSales)"
+          />
+          {/* Main Glowing Circular Dot */}
+          <circle r="5" fill="#5B5BF0" filter="url(#particleGlowSales)" />
+          {/* Sparkling White Core */}
+          <circle r="2.6" fill="#FFFFFF" />
         </g>
 
-        {/* Continuous Flowing Particles on Purchases Curve (Teal, 3 staggered beads) */}
-        <g id="purchases-particles-group">
-          <g ref={pDot1Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
-            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
-            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
-
-          <g ref={pDot2Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
-            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
-            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
-
-          <g ref={pDot3Ref} style={{ opacity: 0 }} className="transition-opacity duration-300">
-            <circle cx="-12" cy="0" r="1.5" fill="#14B8A6" opacity="0.3" />
-            <circle cx="-6" cy="0" r="2.2" fill="#2DD4BF" opacity="0.6" />
-            <circle r="9" fill="#14B8A6" opacity="0.3" filter="url(#particleGlowPurchases)" />
-            <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
-            <circle r="2.6" fill="#FFFFFF" />
-          </g>
+        {/* Other Dot: Single Circular Dot for Purchases Curve (Teal), trailing ~1 inch behind */}
+        <g
+          ref={pDotRef}
+          style={{ opacity: 0 }}
+          className="transition-opacity duration-150 pointer-events-none"
+        >
+          {/* Outer Pulsating 3D Halo */}
+          <circle
+            r="10"
+            fill="#14B8A6"
+            opacity="0.3"
+            filter="url(#particleGlowPurchases)"
+          />
+          {/* Main Glowing Circular Dot */}
+          <circle r="5" fill="#14B8A6" filter="url(#particleGlowPurchases)" />
+          {/* Sparkling White Core */}
+          <circle r="2.6" fill="#FFFFFF" />
         </g>
       </svg>
     </div>

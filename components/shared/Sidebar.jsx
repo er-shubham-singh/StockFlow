@@ -80,7 +80,7 @@ export function Sidebar() {
     >
       {/* Brand Logo & Name */}
       <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100 dark:border-slate-800/80">
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/" prefetch={true} className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#5B5BF0] to-[#8B5CF6] flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
             <Boxes className="w-5 h-5" />
           </div>
@@ -110,6 +110,7 @@ export function Sidebar() {
             <Link
               key={link.href}
               href={link.href}
+              prefetch={true}
               className={cn(
                 "relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-150 group",
                 active

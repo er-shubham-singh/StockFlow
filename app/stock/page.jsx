@@ -34,7 +34,10 @@ import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
+import { Pagination } from "@/components/ui/Pagination";
 import { PageTransition, cardStaggerVariants, cardItemVariants } from "@/components/shared/PageTransition";
+
+const ITEMS_PER_PAGE = 11;
 
 function StockContent() {
   const searchParams = useSearchParams();
@@ -45,11 +48,13 @@ function StockContent() {
     updateItem,
     deleteItem,
     adjustStock,
+    triggerAction,
   } = useAppStore();
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [tempCategory, setTempCategory] = useState("");
   const [tempStatus, setTempStatus] = useState("");
@@ -107,6 +112,17 @@ function StockContent() {
     });
   }, [items, search, selectedCategory, selectedStatus]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, selectedStatus]);
+
+  // Paginated Items (only 11 per page)
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
   // Calculations for KPI pills
   const totalStockCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalValuation = items.reduce(
@@ -116,7 +132,7 @@ function StockContent() {
   const lowStockCount = items.filter((i) => i.quantity <= i.minLevel).length;
 
   // Stock adjustments handler
-  const handlePerformAdjustment = (e) => {
+  const handlePerformAdjustment = async (e) => {
     e.preventDefault();
     setAdjustError("");
 
@@ -127,24 +143,27 @@ function StockContent() {
     }
 
     const change = adjustType === "add" ? num : -num;
-    const result = adjustStock(
-      adjustTargetItem.id,
-      change,
-      adjustReason || "Manual inventory adjustment"
-    );
 
-    if (result.success) {
-      setAdjustModalOpen(false);
-      setAdjustQty("");
-      setAdjustReason("");
-      // Update active item if detail drawer is open
-      if (activeItem && activeItem.id === adjustTargetItem.id) {
-        const updated = items.find((i) => i.id === adjustTargetItem.id);
-        if (updated) setActiveItem(updated);
+    await triggerAction(async () => {
+      const result = adjustStock(
+        adjustTargetItem.id,
+        change,
+        adjustReason || "Manual inventory adjustment"
+      );
+
+      if (result.success) {
+        setAdjustModalOpen(false);
+        setAdjustQty("");
+        setAdjustReason("");
+        // Update active item if detail drawer is open
+        if (activeItem && activeItem.id === adjustTargetItem.id) {
+          const updated = items.find((i) => i.id === adjustTargetItem.id);
+          if (updated) setActiveItem(updated);
+        }
+      } else {
+        setAdjustError(result.error);
       }
-    } else {
-      setAdjustError(result.error);
-    }
+    }, "Adjusting Stock Level...");
   };
 
   return (
@@ -450,7 +469,7 @@ function StockContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm font-medium">
-                    {filteredItems.map((item) => (
+                    {paginatedItems.map((item) => (
                       <tr
                         key={item.id}
                         className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
@@ -560,17 +579,26 @@ function StockContent() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Desktop Pagination (11 items per page) */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredItems.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           </div>
 
           {/* Mobile Stacked Card View */}
-          <motion.div
-            variants={cardStaggerVariants}
-            initial="hidden"
-            animate="visible"
-            className="md:hidden space-y-3"
-          >
-            {filteredItems.map((item) => (
+          <div className="md:hidden space-y-3">
+            <motion.div
+              variants={cardStaggerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-3"
+            >
+              {paginatedItems.map((item) => (
               <motion.div key={item.id} variants={cardItemVariants}>
                 <Card
                   className="p-4"
@@ -661,7 +689,18 @@ function StockContent() {
                 </Card>
               </motion.div>
             ))}
-          </motion.div>
+            </motion.div>
+
+            {/* Mobile Pagination (11 items per page) */}
+            <Card padding="none" className="overflow-hidden">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredItems.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </Card>
+          </div>
         </>
       )}
 
@@ -673,12 +712,14 @@ function StockContent() {
           setEditingItem(null);
         }}
         initialItem={editingItem}
-        onSubmit={(data) => {
-          if (editingItem) {
-            updateItem(editingItem.id, data);
-          } else {
-            addItem(data);
-          }
+        onSubmit={async (data) => {
+          await triggerAction(async () => {
+            if (editingItem) {
+              updateItem(editingItem.id, data);
+            } else {
+              addItem(data);
+            }
+          }, editingItem ? "Updating Item Details..." : "Creating Catalog Item...");
           setFormDrawerOpen(false);
           setEditingItem(null);
         }}
@@ -817,9 +858,11 @@ function StockContent() {
           setDeleteModalOpen(false);
           setItemToDelete(null);
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (itemToDelete) {
-            deleteItem(itemToDelete.id);
+            await triggerAction(async () => {
+              deleteItem(itemToDelete.id);
+            }, "Deleting Item from Inventory...");
             setDeleteModalOpen(false);
             setItemToDelete(null);
           }

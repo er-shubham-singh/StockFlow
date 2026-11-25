@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/Card";
 import { Drawer } from "@/components/ui/Drawer";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/ui/Pagination";
 import { motion } from "framer-motion";
 import {
   PageTransition,
@@ -28,13 +29,23 @@ import {
   cardItemVariants,
 } from "@/components/shared/PageTransition";
 
+const ITEMS_PER_PAGE = 11;
+
 export default function ContactsPage() {
   const router = useRouter();
-  const { customers, suppliers, sales, purchases, addCustomer, addSupplier } =
-    useAppStore();
+  const {
+    customers,
+    suppliers,
+    sales,
+    purchases,
+    addCustomer,
+    addSupplier,
+    triggerAction,
+  } = useAppStore();
 
   const [activeTab, setActiveTab] = useState("customers"); // 'customers' | 'suppliers'
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [addDrawerOpen, setAddDrawerOpen] = useState(false);
 
   // Form states for adding contact
@@ -68,13 +79,32 @@ export default function ContactsPage() {
     );
   }, [suppliers, search]);
 
-  const handleAddContact = (e) => {
+  // Reset page when tab or search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeTab]);
+
+  // Paginated contacts (only 11 per page)
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCustomers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCustomers, currentPage]);
+
+  const paginatedSuppliers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSuppliers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSuppliers, currentPage]);
+
+  const handleAddContact = async (e) => {
     e.preventDefault();
-    if (activeTab === "customers") {
-      addCustomer({ name, company, email, phone, gstin, city, address });
-    } else {
-      addSupplier({ name, company, email, phone, gstin, city, address });
-    }
+    await triggerAction(async () => {
+      if (activeTab === "customers") {
+        addCustomer({ name, company, email, phone, gstin, city, address });
+      } else {
+        addSupplier({ name, company, email, phone, gstin, city, address });
+      }
+    }, `Adding New ${activeTab === "customers" ? "Customer" : "Supplier"}...`);
+
     setAddDrawerOpen(false);
     setName("");
     setCompany("");
@@ -144,13 +174,14 @@ export default function ContactsPage() {
 
       {/* CUSTOMERS GRID */}
       {activeTab === "customers" && (
-        <motion.div
-          variants={cardStaggerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          {filteredCustomers.map((c) => {
+        <div className="space-y-4">
+          <motion.div
+            variants={cardStaggerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            {paginatedCustomers.map((c) => {
             const customerSales = sales.filter((s) => s.customerId === c.id);
             const totalSpend = customerSales
               .filter((s) => s.status !== "Cancelled")
@@ -218,18 +249,30 @@ export default function ContactsPage() {
               </motion.div>
             );
           })}
-        </motion.div>
+          </motion.div>
+
+          {/* Customers Pagination (11 items per page) */}
+          <Card padding="none" className="overflow-hidden">
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredCustomers.length}
+              pageSize={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
+          </Card>
+        </div>
       )}
 
       {/* SUPPLIERS GRID */}
       {activeTab === "suppliers" && (
-        <motion.div
-          variants={cardStaggerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          {filteredSuppliers.map((s) => {
+        <div className="space-y-4">
+          <motion.div
+            variants={cardStaggerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            {paginatedSuppliers.map((s) => {
             const supplierPOs = purchases.filter((p) => p.supplierId === s.id);
             const totalProcured = supplierPOs
               .filter((p) => p.status !== "Cancelled")
@@ -297,7 +340,18 @@ export default function ContactsPage() {
               </motion.div>
             );
           })}
-        </motion.div>
+          </motion.div>
+
+          {/* Suppliers Pagination (11 items per page) */}
+          <Card padding="none" className="overflow-hidden">
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredSuppliers.length}
+              pageSize={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
+          </Card>
+        </div>
       )}
 
       {/* Add Contact Drawer */}

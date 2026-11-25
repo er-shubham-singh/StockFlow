@@ -33,12 +33,15 @@ import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
+import { Pagination } from "@/components/ui/Pagination";
 import { motion } from "framer-motion";
 import {
   PageTransition,
   cardStaggerVariants,
   cardItemVariants,
 } from "@/components/shared/PageTransition";
+
+const ITEMS_PER_PAGE = 11;
 
 function SalesContent() {
   const searchParams = useSearchParams();
@@ -50,12 +53,14 @@ function SalesContent() {
     confirmSaleOrder,
     markSaleAsPaid,
     cancelSaleOrder,
+    triggerAction,
   } = useAppStore();
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [tempStatus, setTempStatus] = useState("");
   const [tempCategory, setTempCategory] = useState("");
@@ -110,6 +115,17 @@ function SalesContent() {
       return matchesSearch && matchesStatus && matchesDate && matchesCategory;
     });
   }, [sales, items, search, selectedStatus, selectedCategory, dateFilter]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus, selectedCategory, dateFilter]);
+
+  // Paginated Sales (only 11 per page)
+  const paginatedSales = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSales.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSales, currentPage]);
 
   // Financial Metrics
   const totalRevenue = sales
@@ -459,7 +475,7 @@ function SalesContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm font-medium">
-                    {filteredSales.map((sale) => (
+                    {paginatedSales.map((sale) => (
                       <tr
                         key={sale.id}
                         className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
@@ -515,7 +531,11 @@ function SalesContent() {
                                 variant="success"
                                 size="sm"
                                 icon={CreditCard}
-                                onClick={() => markSaleAsPaid(sale.id)}
+                                onClick={async () => {
+                                  await triggerAction(async () => {
+                                    markSaleAsPaid(sale.id);
+                                  }, "Recording Payment Received...");
+                                }}
                               >
                                 Mark Paid
                               </Button>
@@ -553,17 +573,26 @@ function SalesContent() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Desktop Pagination (11 items per page) */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredSales.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           </div>
 
           {/* Mobile Stacked Cards */}
-          <motion.div
-            variants={cardStaggerVariants}
-            initial="hidden"
-            animate="visible"
-            className="md:hidden space-y-3"
-          >
-            {filteredSales.map((sale) => (
+          <div className="md:hidden space-y-3">
+            <motion.div
+              variants={cardStaggerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-3"
+            >
+              {paginatedSales.map((sale) => (
               <motion.div variants={cardItemVariants} key={sale.id}>
                 <Card
                   className="p-4"
@@ -647,7 +676,18 @@ function SalesContent() {
                 </Card>
               </motion.div>
             ))}
-          </motion.div>
+            </motion.div>
+
+            {/* Mobile Pagination (11 items per page) */}
+            <Card padding="none" className="overflow-hidden">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredSales.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </Card>
+          </div>
         </>
       )}
 
@@ -657,11 +697,13 @@ function SalesContent() {
         onClose={() => setCreateDrawerOpen(false)}
         customers={customers}
         items={items}
-        onSubmit={(saleData) => {
-          const res = createSaleOrder(saleData);
-          if (res?.success) {
-            setCreateDrawerOpen(false);
-          }
+        onSubmit={async (saleData) => {
+          await triggerAction(async () => {
+            const res = createSaleOrder(saleData);
+            if (res?.success) {
+              setCreateDrawerOpen(false);
+            }
+          }, "Creating Sales Invoice...");
         }}
       />
 
@@ -675,20 +717,26 @@ function SalesContent() {
           }}
           sale={activeInvoice}
           customer={customers.find((c) => c.id === activeInvoice.customerId)}
-          onConfirm={() => {
-            confirmSaleOrder(activeInvoice.id);
-            const updated = sales.find((s) => s.id === activeInvoice.id);
-            if (updated) setActiveInvoice(updated);
+          onConfirm={async () => {
+            await triggerAction(async () => {
+              confirmSaleOrder(activeInvoice.id);
+              const updated = sales.find((s) => s.id === activeInvoice.id);
+              if (updated) setActiveInvoice(updated);
+            }, "Confirming Sale & Deducting Stock...");
           }}
-          onMarkPaid={() => {
-            markSaleAsPaid(activeInvoice.id);
-            const updated = sales.find((s) => s.id === activeInvoice.id);
-            if (updated) setActiveInvoice(updated);
+          onMarkPaid={async () => {
+            await triggerAction(async () => {
+              markSaleAsPaid(activeInvoice.id);
+              const updated = sales.find((s) => s.id === activeInvoice.id);
+              if (updated) setActiveInvoice(updated);
+            }, "Recording Payment Received...");
           }}
-          onCancel={() => {
-            cancelSaleOrder(activeInvoice.id);
-            const updated = sales.find((s) => s.id === activeInvoice.id);
-            if (updated) setActiveInvoice(updated);
+          onCancel={async () => {
+            await triggerAction(async () => {
+              cancelSaleOrder(activeInvoice.id);
+              const updated = sales.find((s) => s.id === activeInvoice.id);
+              if (updated) setActiveInvoice(updated);
+            }, "Cancelling Invoice & Restoring Stock...");
           }}
         />
       )}
@@ -700,13 +748,15 @@ function SalesContent() {
           setConfirmModalOpen(false);
           setSaleToConfirm(null);
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (saleToConfirm) {
-            const res = confirmSaleOrder(saleToConfirm.id);
-            if (res?.success) {
-              setConfirmModalOpen(false);
-              setSaleToConfirm(null);
-            }
+            await triggerAction(async () => {
+              const res = confirmSaleOrder(saleToConfirm.id);
+              if (res?.success) {
+                setConfirmModalOpen(false);
+                setSaleToConfirm(null);
+              }
+            }, "Confirming Sale & Deducting Stock...");
           }
         }}
         title="Confirm Sale Order?"
@@ -721,6 +771,15 @@ function SalesContent() {
         onClose={() => {
           setCancelModalOpen(false);
           setSaleToCancel(null);
+        }}
+        onConfirm={async () => {
+          if (saleToCancel) {
+            await triggerAction(async () => {
+              cancelSaleOrder(saleToCancel.id);
+              setCancelModalOpen(false);
+              setSaleToCancel(null);
+            }, "Cancelling Sale Order...");
+          }
         }}
         onConfirm={() => {
           if (saleToCancel) {

@@ -4,6 +4,10 @@ import { Sidebar } from "@/components/shared/Sidebar";
 import { Navbar } from "@/components/shared/Navbar";
 import { MobileTabBar } from "@/components/shared/MobileTabBar";
 import { ToastContainer } from "@/components/ui/Toast";
+import {
+  TopNavigationProgressBar,
+  GlobalActionLoader,
+} from "@/components/ui/PremiumLoader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,6 +33,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-slate-900 dark:text-slate-100 antialiased selection:bg-[#5B5BF0] selection:text-white">
+        {/* Instant Top Navigation Progress Bar */}
+        <TopNavigationProgressBar />
+
+        {/* Global Action Loader Overlay */}
+        <GlobalActionLoader />
+
         <div className="flex min-h-screen">
           {/* Collapsible Left Sidebar for Desktop */}
           <Sidebar />

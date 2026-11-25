@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 export function MobileTabBar() {
   const pathname = usePathname();
-  const { theme, toggleTheme, resetDemoData, items } = useAppStore();
+  const { theme, toggleTheme, resetDemoData, triggerAction, items } = useAppStore();
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
 
@@ -63,6 +63,7 @@ export function MobileTabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
+                prefetch={true}
                 className="relative flex flex-col items-center justify-center flex-1 h-full py-0.5 transition-all group"
               >
                 {active ? (
@@ -152,6 +153,7 @@ export function MobileTabBar() {
           <div className="space-y-2">
             <Link
               href="/reports"
+              prefetch={true}
               onClick={() => setMoreDrawerOpen(false)}
               className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group"
             >
@@ -174,6 +176,7 @@ export function MobileTabBar() {
 
             <Link
               href="/contacts"
+              prefetch={true}
               onClick={() => setMoreDrawerOpen(false)}
               className="flex items-center gap-3.5 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors group"
             >
@@ -265,8 +268,10 @@ export function MobileTabBar() {
       <ConfirmDialog
         isOpen={resetModalOpen}
         onClose={() => setResetModalOpen(false)}
-        onConfirm={() => {
-          resetDemoData();
+        onConfirm={async () => {
+          await triggerAction(async () => {
+            resetDemoData();
+          }, "Resetting System Demo Data...");
           setResetModalOpen(false);
         }}
         title="Reset Demo Data?"

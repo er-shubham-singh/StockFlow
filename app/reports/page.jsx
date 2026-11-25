@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/ui/Pagination";
 import { motion } from "framer-motion";
 import {
   PageTransition,
@@ -38,11 +39,14 @@ import {
   cardItemVariants,
 } from "@/components/shared/PageTransition";
 
+const ITEMS_PER_PAGE = 11;
+
 export default function ReportsPage() {
-  const { items, sales, purchases } = useAppStore();
+  const { items, sales, purchases, triggerAction } = useAppStore();
   const [activeTab, setActiveTab] = useState("stock"); // 'stock' | 'sales' | 'purchase'
   const [startDate, setStartDate] = useState("2024-01-01");
   const [endDate, setEndDate] = useState("2024-12-31");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // 1. Stock Report Data
   const stockValuation = useMemo(() => {
@@ -106,49 +110,76 @@ export default function ReportsPage() {
     return Object.values(map);
   }, [filteredPurchases]);
 
+  // Reset page when tab or dates change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, startDate, endDate]);
+
+  // Paginated Report Slices (11 items per page)
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return items.slice(start, start + ITEMS_PER_PAGE);
+  }, [items, currentPage]);
+
+  const paginatedReportSales = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSales.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSales, currentPage]);
+
+  const paginatedReportPurchases = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPurchases.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPurchases, currentPage]);
+
   // Export handlers
-  const handleExportStockCSV = () => {
-    const rows = items.map((i) => ({
-      SKU: i.sku,
-      Name: i.name,
-      Category: i.category,
-      Quantity: i.quantity,
-      Unit: i.unit,
-      UnitPrice: i.unitPrice,
-      PurchasePrice: i.purchasePrice,
-      TotalValuation: i.quantity * i.unitPrice,
-      TotalCost: i.quantity * i.purchasePrice,
-      Status: i.status,
-    }));
-    exportToCSV("StockFlow-Inventory-Report", rows);
+  const handleExportStockCSV = async () => {
+    await triggerAction(async () => {
+      const rows = items.map((i) => ({
+        SKU: i.sku,
+        Name: i.name,
+        Category: i.category,
+        Quantity: i.quantity,
+        Unit: i.unit,
+        UnitPrice: i.unitPrice,
+        PurchasePrice: i.purchasePrice,
+        TotalValuation: i.quantity * i.unitPrice,
+        TotalCost: i.quantity * i.purchasePrice,
+        Status: i.status,
+      }));
+      exportToCSV("StockFlow-Inventory-Report", rows);
+    }, "Exporting Inventory Valuation CSV...");
   };
 
-  const handleExportSalesCSV = () => {
-    const rows = filteredSales.map((s) => ({
-      InvoiceNo: s.invoiceNo,
-      Customer: s.customerName,
-      Date: s.date,
-      ItemsCount: s.items.length,
-      Subtotal: s.subtotal,
-      GST: s.taxAmount,
-      Total: s.total,
-      Status: s.status,
-    }));
-    exportToCSV("StockFlow-Sales-Report", rows);
+  const handleExportSalesCSV = async () => {
+    await triggerAction(async () => {
+      const rows = filteredSales.map((s) => ({
+        InvoiceNo: s.invoiceNo,
+        Customer: s.customerName,
+        Date: s.date,
+        ItemsCount: s.items.length,
+        Subtotal: s.subtotal,
+        GST: s.taxAmount,
+        Total: s.total,
+        Status: s.status,
+      }));
+      exportToCSV("StockFlow-Sales-Report", rows);
+    }, "Exporting Sales Register CSV...");
   };
 
-  const handleExportPurchaseCSV = () => {
-    const rows = filteredPurchases.map((p) => ({
-      PONumber: p.poNo,
-      Supplier: p.supplierName,
-      Date: p.date,
-      ItemsCount: p.items.length,
-      Subtotal: p.subtotal,
-      GST: p.taxAmount,
-      Total: p.total,
-      Status: p.status,
-    }));
-    exportToCSV("StockFlow-Purchase-Report", rows);
+  const handleExportPurchaseCSV = async () => {
+    await triggerAction(async () => {
+      const rows = filteredPurchases.map((p) => ({
+        PONumber: p.poNo,
+        Supplier: p.supplierName,
+        Date: p.date,
+        ItemsCount: p.items.length,
+        Subtotal: p.subtotal,
+        GST: p.taxAmount,
+        Total: p.total,
+        Status: p.status,
+      }));
+      exportToCSV("StockFlow-Purchase-Report", rows);
+    }, "Exporting Procurement Register CSV...");
   };
 
   return (
@@ -343,7 +374,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {items.map((it) => (
+                  {paginatedItems.map((it) => (
                     <tr key={it.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                       <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
                         {it.name} <span className="text-slate-400 font-mono font-normal block text-xs">{it.sku}</span>
@@ -365,6 +396,14 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination (11 items per page) */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={items.length}
+              pageSize={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
           </Card>
         </div>
       )}
@@ -431,7 +470,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {filteredSales.map((s) => (
+                  {paginatedReportSales.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                       <td className="py-3 px-4 font-mono font-bold text-[#5B5BF0]">{s.invoiceNo}</td>
                       <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">{s.customerName}</td>
@@ -447,6 +486,14 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination (11 items per page) */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredSales.length}
+              pageSize={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
           </Card>
         </div>
       )}
@@ -531,7 +578,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {filteredPurchases.map((p) => (
+                  {paginatedReportPurchases.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                       <td className="py-3 px-4 font-mono font-bold text-teal-600 dark:text-teal-400">{p.poNo}</td>
                       <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">{p.supplierName}</td>
@@ -547,6 +594,14 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination (11 items per page) */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredPurchases.length}
+              pageSize={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+            />
           </Card>
         </div>
       )}

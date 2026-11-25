@@ -32,12 +32,15 @@ import { FilterDrawer } from "@/components/shared/FilterDrawer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon3D } from "@/components/ui/Icon3D";
+import { Pagination } from "@/components/ui/Pagination";
 import { motion } from "framer-motion";
 import {
   PageTransition,
   cardStaggerVariants,
   cardItemVariants,
 } from "@/components/shared/PageTransition";
+
+const ITEMS_PER_PAGE = 11;
 
 function PurchaseContent() {
   const searchParams = useSearchParams();
@@ -48,11 +51,13 @@ function PurchaseContent() {
     createPurchaseOrder,
     receivePurchaseOrder,
     cancelPurchaseOrder,
+    triggerAction,
   } = useAppStore();
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [tempStatus, setTempStatus] = useState("");
   const [tempCategory, setTempCategory] = useState("");
@@ -109,6 +114,17 @@ function PurchaseContent() {
       return matchesSearch && matchesStatus && matchesCategory;
     });
   }, [purchases, items, search, selectedStatus, selectedCategory]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus, selectedCategory]);
+
+  // Paginated Purchases (only 11 per page)
+  const paginatedPurchases = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPurchases.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPurchases, currentPage]);
 
   // Metrics
   const totalSpend = purchases
@@ -418,7 +434,7 @@ function PurchaseContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm font-medium">
-                    {filteredPurchases.map((po) => (
+                    {paginatedPurchases.map((po) => (
                       <tr
                         key={po.id}
                         className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
@@ -502,17 +518,26 @@ function PurchaseContent() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Desktop Pagination (11 items per page) */}
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredPurchases.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
             </Card>
           </div>
 
           {/* Mobile Stacked Cards */}
-          <motion.div
-            variants={cardStaggerVariants}
-            initial="hidden"
-            animate="visible"
-            className="md:hidden space-y-3"
-          >
-            {filteredPurchases.map((po) => (
+          <div className="md:hidden space-y-3">
+            <motion.div
+              variants={cardStaggerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-3"
+            >
+              {paginatedPurchases.map((po) => (
               <motion.div variants={cardItemVariants} key={po.id}>
                 <Card
                   className="p-4"
@@ -588,7 +613,18 @@ function PurchaseContent() {
                 </Card>
               </motion.div>
             ))}
-          </motion.div>
+            </motion.div>
+
+            {/* Mobile Pagination (11 items per page) */}
+            <Card padding="none" className="overflow-hidden">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={filteredPurchases.length}
+                pageSize={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </Card>
+          </div>
         </>
       )}
 
@@ -602,8 +638,10 @@ function PurchaseContent() {
         suppliers={suppliers}
         items={items}
         prefilledItemId={prefilledItemId}
-        onSubmit={(poData) => {
-          createPurchaseOrder(poData);
+        onSubmit={async (poData) => {
+          await triggerAction(async () => {
+            createPurchaseOrder(poData);
+          }, "Creating Purchase Order...");
           setCreateDrawerOpen(false);
           setPrefilledItemId(null);
         }}
@@ -637,9 +675,11 @@ function PurchaseContent() {
           setReceiveModalOpen(false);
           setPoToReceive(null);
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (poToReceive) {
-            receivePurchaseOrder(poToReceive.id);
+            await triggerAction(async () => {
+              receivePurchaseOrder(poToReceive.id);
+            }, "Receiving Shipment & Updating Stock...");
             setReceiveModalOpen(false);
             // Update active PO if open
             if (activePO && activePO.id === poToReceive.id) {
@@ -662,9 +702,11 @@ function PurchaseContent() {
           setCancelModalOpen(false);
           setPoToCancel(null);
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (poToCancel) {
-            cancelPurchaseOrder(poToCancel.id);
+            await triggerAction(async () => {
+              cancelPurchaseOrder(poToCancel.id);
+            }, "Cancelling Purchase Order...");
             setCancelModalOpen(false);
             if (activePO && activePO.id === poToCancel.id) {
               const updated = purchases.find((p) => p.id === poToCancel.id);
